@@ -4,9 +4,15 @@ import gulpLoadPlugins from 'gulp-load-plugins';
 import browserSync from 'browser-sync';
 import del from 'del';
 import {stream as wiredep} from 'wiredep';
+import browserify from 'browserify'
+import source from 'vinyl-source-stream'
 
 const $ = gulpLoadPlugins();
 const reload = browserSync.reload;
+
+const sourceFile = './app/scripts/main_nocmp.js';
+const destFolder = './app/scripts/';
+const destFile = 'main.js';
 
 gulp.task('styles', () => {
   return gulp.src('app/styles/*.css')
@@ -96,7 +102,7 @@ gulp.task('mustache', () => {
 
 gulp.task('clean', del.bind(null, ['.tmp', 'dist']));
 
-gulp.task('serve', ['styles', 'fonts', 'mustache'], () => {
+gulp.task('serve', ['styles', 'fonts', 'mustache', 'browserify'], () => {
   browserSync({
     notify: false,
     port: 9000,
@@ -116,10 +122,19 @@ gulp.task('serve', ['styles', 'fonts', 'mustache'], () => {
     '.tmp/fonts/**/*'
   ]).on('change', reload);
 
+  gulp.watch('app/scripts/**/*.js', ['browserify']);
   gulp.watch('app/styles/**/*.css', ['styles']);
   gulp.watch('app/fonts/**/*', ['fonts']);
   gulp.watch('app/templates/**/*.mustache', ['mustache']);
   gulp.watch('bower.json', ['wiredep', 'fonts']);
+});
+
+//Browserify
+gulp.task('browserify', function() {
+  return browserify(sourceFile)
+  .bundle()
+  .pipe(source(destFile))
+  .pipe(gulp.dest(destFolder));
 });
 
 gulp.task('serve:dist', () => {
@@ -159,7 +174,7 @@ gulp.task('wiredep', () => {
     .pipe(gulp.dest('app'));
 });
 
-gulp.task('build', ['lint', 'html', 'images', 'fonts', 'mustache', 'extras'], () => {
+gulp.task('build', ['lint', 'html', 'images', 'fonts', 'mustache', 'extras', 'browserify'], () => {
   return gulp.src('dist/**/*').pipe($.size({title: 'build', gzip: true}));
 });
 
